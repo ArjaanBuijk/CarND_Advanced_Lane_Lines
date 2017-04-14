@@ -25,6 +25,7 @@ import math
 import pickle
 from skimage import exposure
 from tqdm import tqdm
+from collections import deque
 
 #get_ipython().magic('matplotlib inline')
 
@@ -36,7 +37,7 @@ from tqdm import tqdm
 
 # function to show an image with title
 def show_image(image, title, cmap=None ):
-    fig, ax = plt.subplots(1, 1, figsize=(24, 9))
+    fig, ax = plt.subplots(1, 1, figsize=(15, 9))
     plt.title(title)
     if cmap:
         plt.imshow(image, cmap=cmap) # if you wanted to show a single color channel image called 'gray', for example, call as plt.imshow(gray, cmap='gray')
@@ -111,90 +112,90 @@ def draw_windows_on_image(img,
     draw_lines_on_image(img, lines, color=[0, 255, 0], thickness=2)
 
 
-# # 1. Camera Calibration
+### # 1. Camera Calibration
+##
+### In[3]:
+##
+### prepare object points
+##nx = 9 # The number of inside corners in x
+##ny = 6 # The number of inside corners in y
+##
+### Make a list of calibration images
+##file_dir = "camera_cal"
+##file_dir_out = "camera_cal_output"
+##files = os.listdir(file_dir)
+##
+### termination criteria
+##criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+##
+### prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
+##objp = np.zeros((ny*nx,3), np.float32)
+##objp[:,:2] = np.mgrid[0:nx,0:ny].T.reshape(-1,2) # x, y coordinates
+##
+### Arrays to store object points and image points from all the images.
+##objpoints = [] # 3d point in real world space
+##imgpoints = [] # 2d points in image plane.
 
-# In[3]:
-
-# prepare object points
-nx = 9 # The number of inside corners in x
-ny = 6 # The number of inside corners in y
-
-# Make a list of calibration images
-file_dir = "camera_cal"
-file_dir_out = "camera_cal_output"
-files = os.listdir(file_dir)
-
-# termination criteria
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-
-# prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((ny*nx,3), np.float32)
-objp[:,:2] = np.mgrid[0:nx,0:ny].T.reshape(-1,2) # x, y coordinates
-
-# Arrays to store object points and image points from all the images.
-objpoints = [] # 3d point in real world space
-imgpoints = [] # 2d points in image plane.
-
-print('Finding chessboard in calibration images')
-for file in files:
-    file_in=file_dir+"/"+file
-    file_out=file_dir_out+"/Corners_on_"+file
-    
-    image = mpimg.imread(file_in)
-    
-    # Convert to grayscale
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-
-    # Find the chessboard corners
-    ret, corners = cv2.findChessboardCorners(gray, (nx, ny), None)
-
-    # If found
-    # - draw corners
-    # - append object points & image points to storage arrays
-    if ret == True:
-        objpoints.append(objp)    # note: same for all calibration images !
-        imgpoints.append(corners)
-        
-        # Draw and display the corners
-        image2 = np.copy(image)
-        cv2.drawChessboardCorners(image2, (nx, ny), corners, ret)
-        plot_orig_and_changed_image(image1=image , description1=file,
-                                    image2=image2, description2='With Corners',
-                                    file_out=file_out)
-    else:
-        plot_orig_and_changed_image(image1=image, description1=file,
-                                    image2=None , description2=None)
-        
-
-
-# In[4]:
-
-print('Calibrating the Camera')
-# Calibrate the camera
-ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, 
-                                                   imgpoints, 
-                                                   gray.shape[::-1], 
-                                                   None, None)
-
-# Save the calibrated camera data
-pickle_file = 'calibrated_camera.pickle'
-
-try:
-    with open(pickle_file, 'wb') as pfile:
-        pickle.dump(
-            {
-                'ret': ret,
-                'mtx': mtx,
-                'dist': dist,
-                'rvecs': rvecs,
-                'tvecs': tvecs,
-            },
-            pfile, pickle.HIGHEST_PROTOCOL)
-except Exception as e:
-    print('Unable to save data to', pickle_file, ':', e)
-    raise
-    
-print('Cached calibrated camera data in pickle file: '+pickle_file)
+##print('Finding chessboard in calibration images')
+##for file in files:
+##    file_in=file_dir+"/"+file
+##    file_out=file_dir_out+"/Corners_on_"+file
+##    
+##    image = mpimg.imread(file_in)
+##    
+##    # Convert to grayscale
+##    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+##
+##    # Find the chessboard corners
+##    ret, corners = cv2.findChessboardCorners(gray, (nx, ny), None)
+##
+##    # If found
+##    # - draw corners
+##    # - append object points & image points to storage arrays
+##    if ret == True:
+##        objpoints.append(objp)    # note: same for all calibration images !
+##        imgpoints.append(corners)
+##        
+##        # Draw and display the corners
+##        image2 = np.copy(image)
+##        cv2.drawChessboardCorners(image2, (nx, ny), corners, ret)
+##        plot_orig_and_changed_image(image1=image , description1=file,
+##                                    image2=image2, description2='With Corners',
+##                                    file_out=file_out)
+##    else:
+##        plot_orig_and_changed_image(image1=image, description1=file,
+##                                    image2=None , description2=None)
+##        
+##
+##
+### In[4]:
+##
+##print('Calibrating the Camera')
+### Calibrate the camera
+##ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, 
+##                                                   imgpoints, 
+##                                                   gray.shape[::-1], 
+##                                                   None, None)
+##
+### Save the calibrated camera data
+##pickle_file = 'calibrated_camera.pickle'
+##
+##try:
+##    with open(pickle_file, 'wb') as pfile:
+##        pickle.dump(
+##            {
+##                'ret': ret,
+##                'mtx': mtx,
+##                'dist': dist,
+##                'rvecs': rvecs,
+##                'tvecs': tvecs,
+##            },
+##            pfile, pickle.HIGHEST_PROTOCOL)
+##except Exception as e:
+##    print('Unable to save data to', pickle_file, ':', e)
+##    raise
+##    
+##print('Cached calibrated camera data in pickle file: '+pickle_file)
 
 
 # # 2. Distortion Correction
@@ -647,11 +648,15 @@ CROP_RIGHT = 1260
 CROP_BOT = 710
 CROP_TOP = 0
 
-MIN_CONVSIGNAL = 100  # if window of convolution has signal lower than this value, it will be rejected
+MIN_CONVSIGNAL = 50  # if window of convolution has signal lower than this value, it will be rejected
 #MIN_CONVSIGNAL = 25  # if window of convolution has signal lower than this value, it will be rejected
 
 MAX_REJECTED = 100 # if this number of windows are rejected in sequence, reject all following windows
                    # this avoids picking up wrong blobs in strongly curved lanes
+
+N_FITS = 5 # number of detected lines that we save
+
+MAX_CAR_DIST_CHANGE_P = 5.0  # in %, max allowed change in distance to car center
 
 def window_mask(width, height, img_ref, center,level):
     output = np.zeros_like(img_ref)
@@ -797,24 +802,6 @@ def fit_polynomials_trough_pixels_in_lane_windows(binary_img_in,
     dh = 0.5*window_height 
     yc = binary_img.shape[0]-dh   # y at center of window
     
-    #NO...! Activate one pixel at the center of each rejected window
-    # This gives mostly a better lane fit in case of lots of rejected windows
-    activate_center_of_rejected_windows=False
-    if activate_center_of_rejected_windows:
-        for centroids in window_centroids: # levels of windows
-            # x at center of left & right windows at each level
-            xc_left  = centroids[0]
-            xc_right = centroids[1]
-            #print ('xc_left, xc_right, yc={0}, {1}, {2}'.format(xc_left, xc_right, yc))
-
-            if xc_left < 0:
-                binary_img[int(yc), int(abs(xc_left))] = 1
-            if xc_right < 0:
-                binary_img[int(yc), int(abs(xc_right))] = 1
-
-            # shift level of windows up for next level    
-            yc = yc - window_height
-    
     # Identify the x and y positions of all nonzero pixels in the image
     nonzero = binary_img.nonzero()
     nonzeroy = np.array(nonzero[0])
@@ -851,8 +838,6 @@ def fit_polynomials_trough_pixels_in_lane_windows(binary_img_in,
         win_xright_low  = int(xc_right - dw)
         win_xright_high = int(xc_right + dw)
         # Identify the nonzero pixels in x and y within the window & Append these indices to the lists
-        #NO...! Include any pixels in the rejected windows too, because logic took care that it is positioned reasonably, and
-        #       it improves the polynomial detection.
         if left_accepted:
             good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0]
             left_lane_inds.append(good_left_inds)
@@ -914,38 +899,43 @@ def fit_polynomials_trough_pixels_in_lane_windows(binary_img_in,
         print('left curvature, right curvatue = {0}m, {1}m'.format(left_curverad,right_curverad))
     
     # ===========================================================
-    # Calculate offset in meters
-    offset = None
+    # Calculate line-to-car-center distances in meters
+    left_car_dist = None     # >0 if inside the lane
+    right_car_dist = None    # >0 if inside the lane
     
-    x_lane_center_m = (binary_img.shape[1]/2.0)*xm_per_pix
+    x_car_center_m = (binary_img.shape[1]/2.0)*xm_per_pix
     
-    if left_fit is not None and right_fit is not None:
+    if left_fit is not None:
         x_lane_left_m  = left_fit_cr[0]*y_eval_m**2 + left_fit_cr[1]*y_eval_m + left_fit_cr[2]
-        x_lane_right_m = right_fit_cr[0]*y_eval_m**2 + right_fit_cr[1]*y_eval_m + right_fit_cr[2]
-        x_car_center_m = 0.5*(x_lane_left_m + x_lane_right_m)
-        offset = x_car_center_m - x_lane_center_m
+        left_car_dist = x_car_center_m - x_lane_left_m
         
+    if right_fit is not None:
+        x_lane_right_m = right_fit_cr[0]*y_eval_m**2 + right_fit_cr[1]*y_eval_m + right_fit_cr[2]
+        right_car_dist = x_lane_right_m - x_car_center_m
     
     if verbose:
-        print('left curvature, right curvatue = {0}m, {1}m'.format(left_curverad,right_curverad))
+        offset = right_car_dist - left_car_dist
+        print('offset, left_car_dist, right_car_dist = {0}m, {1}m, {2}m'.format(
+               offset, left_car_dist, right_car_dist))
 
-        
     # ===========================================================
+    # Generate x and y values for plotting of polynomials
+    left_fitx  = None
+    right_fitx = None
+    
+    ploty = np.linspace(0, binary_img.shape[0]-1, binary_img.shape[0] )
+    if left_fit is not None:
+        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    if right_fit is not None:
+        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+        
     # If requested, color lane pixels and draw polynomial on image
     if visualize:
         # color left-lane pixels red
         out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
         # color right-lane pixels blue
         out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
-        
-        # Generate x and y values for plotting of polynomials
-        ploty = np.linspace(0, binary_img.shape[0]-1, binary_img.shape[0] )
-        
-        if left_fit is not None:
-            left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-        if right_fit is not None:
-            right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-            
+                
         # Draw as yellow lines on the out_image
         for i in range(len(ploty) - 1):
             # left lane
@@ -960,7 +950,9 @@ def fit_polynomials_trough_pixels_in_lane_windows(binary_img_in,
                 cv2.line(out_img, p1, p2, [255, 255, 0], 2)
     
     
-    return left_fit, right_fit, left_curverad, right_curverad, offset, out_img
+    return left_fit, right_fit, left_fitx, right_fitx, left_curverad, right_curverad,\
+           left_car_dist, right_car_dist,\
+           out_img
 
 def find_new_fit(warped, left_fit, right_fit,
                  visualize=True,verbose=False):    
@@ -1040,105 +1032,332 @@ def find_new_fit(warped, left_fit, right_fit,
     
 
 # using techniques described here: http://www.pyimagesearch.com/2016/03/07/transparent-overlays-with-opencv/
-def draw_lanes_on_original_image(img,left_fit, right_fit,
-                                 left_curverad=None, right_curverad=None, offset=None,
+def sanity_check_and_draw_lanes(img,left_fit, right_fit, left_fitx, right_fitx,
+                                 left_curverad=None, right_curverad=None,
+                                 left_car_dist=None, right_car_dist=None,
                                  text1=None):
+    global l_Line, r_Line
+    global debug_lanes
+        
+    if (left_fit is None and right_fit is None and
+        l_Line.best_fit is None and r_Line.best_fit is None):
+        return img # nothing to show yet.
+    
+    # -----------------------------------------------------------------------
+    # Calculate changes of detected lanes compared to best fit,
+    # and decide to accept this lane or not.
+    left_curverad_change     = 0
+    left_car_dist_change    = 0
+    left_fit_change          = np.array([0, 0, 0])
+    left_curverad_change_p   = 0
+    left_car_dist_change_p  = 0
+    left_fit_change_p        = np.array([0, 0, 0])
+    right_curverad_change    = 0
+    right_car_dist_change   = 0
+    right_fit_change         = np.array([0, 0, 0])
+    right_curverad_change_p  = 0
+    right_car_dist_change_p = 0
+    right_fit_change_p       = np.array([0, 0, 0])
+        
+    if left_fit is not None and l_Line.best_fit is not None:
+        left_curverad_change  = left_curverad-l_Line.best_rad
+        left_car_dist_change = left_car_dist-l_Line.best_car_dist
+        left_fit_change       = left_fit-l_Line.best_fit
+        
+        left_curverad_change_p  = 100*left_curverad_change/l_Line.best_rad
+        left_car_dist_change_p = 100*left_car_dist_change/l_Line.best_car_dist
+        left_fit_change_p       = 100*left_fit_change/l_Line.best_fit
+
+    if right_fit is not None and r_Line.best_fit is not None:
+        right_curverad_change  = right_curverad-r_Line.best_rad
+        right_car_dist_change = right_car_dist-r_Line.best_car_dist
+        right_fit_change       = right_fit-r_Line.best_fit
+        
+        right_curverad_change_p  = 100*right_curverad_change/r_Line.best_rad
+        right_car_dist_change_p = 100*right_car_dist_change/r_Line.best_car_dist
+        right_fit_change_p       = 100*right_fit_change/r_Line.best_fit
+    
+    # Do the acceptance checks
+    left_lane_accepted  = True
+    right_lane_accepted = True 
+    
+    if (left_fit is None or
+        abs(left_car_dist_change_p)  > MAX_CAR_DIST_CHANGE_P): 
+        left_lane_accepted = False
+    
+    if (right_fit is None or 
+        abs(right_car_dist_change_p) > MAX_CAR_DIST_CHANGE_P): 
+        right_lane_accepted = False
+    
+    
+    write_changes_to_file(frame, left_lane_accepted, right_lane_accepted, 
+                          left_curverad_change, left_car_dist_change, left_fit_change,
+                          left_curverad_change_p, left_car_dist_change_p, left_fit_change_p,
+                          right_curverad_change, right_car_dist_change, right_fit_change,
+                          right_curverad_change_p, right_car_dist_change_p, right_fit_change_p)    
+    
+    if left_lane_accepted:
+        # store left line
+        line = l_Line
+        detected = left_fit is not None
+        xfit = left_fitx
+        fit = left_fit
+        curverad = left_curverad
+        car_dist = left_car_dist
+        update_line(line, detected, xfit, fit, curverad, car_dist)
+
+    if right_lane_accepted:
+        # store right line
+        line = r_Line
+        detected = right_fit is not None
+        xfit = right_fitx
+        fit = right_fit
+        curverad = right_curverad
+        car_dist = right_car_dist
+        update_line(line, detected, xfit, fit, curverad, car_dist)
+    
+    # -----------------------------------------------------------------------
+    # draw best_fit lanes with fill in between 
+    # (left=yellow, right=blue, fill=green)
+    out_img = draw_lanes(img, l_Line.best_fit, r_Line.best_fit, fill=True,
+                           color_left=(255,255,0),color_right=(0,0,255),color_fill=(0,255,0))
+    if debug_lanes:
+        #  draw detected lanes without fill in between 
+        # (left=red, right=red)
+        out_img = draw_lanes(out_img, left_fit, right_fit, fill=False,
+                             color_left=(255,0,0),color_right=(255,0,0))
+    
+    # -----------------------------------------------------------------------
+    # Put some text on the image
+    color_txt = (255, 255, 255)
+
+    if text1 is not None:
+        cv2.putText(out_img, text1,(10, 30), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, color_txt, 2)
+    
+    # Put curvature measures as text on out_img
+    
+    if l_Line.best_rad is not None:
+        msg = 'left curvature = {0} m'.format(int(l_Line.best_rad))
+        cv2.putText(out_img, msg,(10, 60), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, color_txt, 2)
+        
+    if r_Line.best_rad is not None:
+        msg = 'right curvature = {0} m'.format(int(r_Line.best_rad))
+        cv2.putText(out_img, msg,(10, 90), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, color_txt, 2)
+    
+    if l_Line.best_car_dist is not None and r_Line.best_car_dist is not None:
+        offset = r_Line.best_car_dist - l_Line.best_car_dist
+        if offset > 0.0:
+            msg = 'Vehicle is {0:.2f} m left of center'.format(abs(offset))
+        else:
+            msg = 'Vehicle is {0:.2f} m right of center'.format(abs(offset))
+            
+        cv2.putText(out_img, msg,(10, 120), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, color_txt, 2)    
+    
+    if debug_lanes:
+        # put additional debug info on image in debug mode
+        txt_yloc   = 10
+        y_shift    = 20
+        fmt = '{0}, {1:.2f}, {2:.2f}, {3:.2f}, {4:.2f}'
+        msg=[]
+        msg.append('_______________________________')
+        msg.append('left    : curvature, car_dist, fit')
+        if left_fit is not None:
+            msg.append('detected: '+fmt.format(int(left_curverad), left_car_dist, *left_fit))
+        else:
+            msg.append('detection failed !')
+        msg.append('change  :'+fmt.format(int(left_curverad_change),
+                                          left_car_dist_change,
+                                          *(left_fit_change)))
+        msg.append('change%:'+fmt.format(int(left_curverad_change_p),
+                                          left_car_dist_change_p,
+                                          *(left_fit_change_p)))
+        for r,d,f in zip(l_Line.rads, l_Line.car_dists, l_Line.fits):
+            msg.append('history  : {'+fmt.format(int(r),d,*f))        
+        msg.append('_______________________________')
+        msg.append('right   : curvature, car_dist, fit')
+        if right_fit is not None:
+            msg.append('detected: '+fmt.format(int(right_curverad), right_car_dist, *right_fit))    
+        else:
+            msg.append('detection failed !')
+        msg.append('change  :'+fmt.format(int(right_curverad_change),
+                                          right_car_dist_change,
+                                          *(right_fit_change)))
+        msg.append('change%:'+fmt.format(int(right_curverad_change_p),
+                                         right_car_dist_change_p,
+                                          *(right_fit_change_p)))             
+        for r,d,f in zip(r_Line.rads, r_Line.car_dists, r_Line.fits):
+            msg.append('history  : {'+fmt.format(int(r),d,*f))
+            
+        
+        for txt in msg:
+            cv2.putText(out_img, txt,(600, txt_yloc), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color_txt, 2)
+            txt_yloc += y_shift
+    
+    
+    # return new image
+    return out_img
+
+# write changes to a file for debug purposes
+def write_changes_to_file(frame, left_lane_accepted, right_lane_accepted, 
+                          left_curverad_change, left_car_dist_change, left_fit_change,
+                          left_curverad_change_p, left_car_dist_change_p, left_fit_change_p,
+                          right_curverad_change, right_car_dist_change, right_fit_change,
+                          right_curverad_change_p, right_car_dist_change_p, right_fit_change_p):
+    global f_changes
+    
+    msg=[]
+    if f_changes is None:
+        f_changes = open(fname_changes, 'w')
+
+        msg.append('------------------------------------------------|----------------------------------')
+        msg.append('     LEFT LANE CHANGES                          |    RIGHT LANE CHANGES            ')
+        msg.append('curvature, car dist, fit                        |curvature, car dist, fit          ')
+
+    msg.append('------------------------------------------------|----------------------------------')
+    msg.append('frame = '+str(frame))
+    msg.append('left_accepted = '+str(left_lane_accepted)+'                            |'+
+               'right_accepted = '+str(right_lane_accepted))
+
+    fmt   = '{0:>6d}m, {1:6.2f}m, {2:10.2e} , {3:6.2f} , {4:6.2f}  | {5:>6d}m, {6:6.2f}m, {7:10.2e} , {8:6.2f} , {9:6.2f} '
+    fmt_p = '{0:>6d}%, {1:6.2f}%, {2:10.2f}%, {3:6.2f}%, {4:6.2f}% | {5:>6d}%, {6:6.2f}%, {7:10.2f}%, {8:6.2f}%, {9:6.2f}%'
+    
+    msg.append(fmt.format(int(left_curverad_change), left_car_dist_change, *left_fit_change,
+                          int(right_curverad_change), right_car_dist_change, *right_fit_change))
+    
+    msg.append(fmt_p.format(int(left_curverad_change_p), left_car_dist_change_p, *left_fit_change_p,
+                            int(right_curverad_change_p), right_car_dist_change_p, *right_fit_change_p))        
+        
+    for txt in msg:
+        f_changes.write(txt+'\n')
+                
+    f_changes.flush() # flush it directly to disk, for debug purposes.
+            
+# draw lanes with or without fill in between            
+def draw_lanes(img, left_fit, right_fit, fill=True,
+               color_left=(255,255,0),color_right=(0,0,255),color_fill=(0,255,0)): 
     # create two copies of the original image -- one for
     # the overlay and one for the final output image
     overlay_img = img.copy()
     out_img     = img.copy()
-
+    
     # -----------------------------------------------------------------------
     # prepare left and right lines as sequence of points
     # Generate x and y values for plotting of polynomials
-    ploty = np.linspace(0, img.shape[0]-1, img.shape[0] )
-    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+    # get source point arrays in correct shape for perspectiveTransform
+    # see: http://answers.opencv.org/question/252/cv2perspectivetransform-with-python/
+    # use the inverse perspective transform to get location of these points in
+    # the original image
 
+    ploty = np.linspace(0, img.shape[0]-1, img.shape[0] )
     src_pts_left  = []
     src_pts_right = []
 
-    for i in range(len(ploty)):
-        src_pts_left.append ( [left_fitx[i] , ploty[i] ] )
-        src_pts_right.append( [right_fitx[i], ploty[i] ] )
+    if left_fit is not None: 
+        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+        for i in range(len(ploty)):
+            src_pts_left.append ( [left_fitx[i] , ploty[i] ] )        
+        src_pts_left = np.array(src_pts_left, dtype='float32')
+        src_pts_left  = np.array([src_pts_left])  # shape = (1, 720, 2)
+        dst_pts_left  = cv2.perspectiveTransform(src_pts_left , Minv)
 
-    # get source point arrays in correct shape for perspectiveTransform
-    # see: http://answers.opencv.org/question/252/cv2perspectivetransform-with-python/
-    src_pts_left = np.array(src_pts_left, dtype='float32')
-    src_pts_right = np.array(src_pts_right, dtype='float32')
-
-    src_pts_left  = np.array([src_pts_left])
-    src_pts_right = np.array([src_pts_right])
-
-    # use the inverse perspective transform to get location of these points in
-    # the original image
-    dst_pts_left  = cv2.perspectiveTransform(src_pts_left , Minv)   # shape = (1, 720, 2)
-    dst_pts_right = cv2.perspectiveTransform(src_pts_right, Minv)
+    if right_fit is not None:
+        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+        for i in range(len(ploty)):
+            src_pts_right.append( [right_fitx[i], ploty[i] ] )        
+        src_pts_right = np.array(src_pts_right, dtype='float32')
+        src_pts_right = np.array([src_pts_right])       
+        dst_pts_right = cv2.perspectiveTransform(src_pts_right, Minv)
 
     # -----------------------------------------------------------------------
     # draw a filled polygon in between lanes on overlay copy, in green
     # See: http://stackoverflow.com/questions/11270250/what-does-the-python-interface-to-opencv2-fillpoly-want-as-input
-    polygon = dst_pts_left[0].tolist() + list(reversed(dst_pts_right[0].tolist()))
-    polygon = np.array(polygon, 'int32')
-    cv2.fillConvexPoly(overlay_img, polygon, (0, 255, 0), lineType=8, shift=0)
+    if fill:
+        if left_fit is not None and right_fit is not None:
+            polygon = dst_pts_left[0].tolist() + list(reversed(dst_pts_right[0].tolist()))
+            polygon = np.array(polygon, 'int32')
+            cv2.fillConvexPoly(overlay_img, polygon, color_fill, lineType=8, shift=0)
 
-    # draw left lane (red) and right lane (blue) on overlay copy
-    pts_left = np.array(dst_pts_left, 'int32')
-    pts_left = pts_left.reshape((-1,1,2))
-    cv2.polylines(overlay_img,[pts_left],False,(255,0,0),thickness=4)
-    
-    pts_right = np.array(dst_pts_right, 'int32')
-    pts_right = pts_right.reshape((-1,1,2))
-    cv2.polylines(overlay_img,[pts_right],False,(0,0,255),thickness=4)    
+    # draw left lane and right lane (blue) on overlay copy
+    if left_fit is not None:
+        pts_left = np.array(dst_pts_left, 'int32')
+        pts_left = pts_left.reshape((-1,1,2))
+        cv2.polylines(overlay_img,[pts_left],False,color_left,thickness=4)
+    if right_fit is not None:    
+        pts_right = np.array(dst_pts_right, 'int32')
+        pts_right = pts_right.reshape((-1,1,2))
+        cv2.polylines(overlay_img,[pts_right],False,color_right,thickness=4)    
 
     # -----------------------------------------------------------------------  
     # apply overlay copy to out_img, with transparency
     alpha=0.5
     cv2.addWeighted(overlay_img, alpha, out_img, 1 - alpha, 0, out_img)
 
-    # -----------------------------------------------------------------------
-    # Put Text on out_img
-
-    if text1 is not None:
-        cv2.putText(out_img, text1,(10, 30), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
-
-    # Put curvature measures as text on overlay
-
-    if left_curverad is not None:
-        msg = 'left curvature = {0} m'.format(int(left_curverad))
-        cv2.putText(out_img, msg,(10, 60), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
-        
-    if right_curverad is not None:
-        msg = 'right curvature = {0} m'.format(int(right_curverad))
-        cv2.putText(out_img, msg,(10, 90), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
-        
-    if offset is not None:
-        if offset < 0.0:
-            msg = 'Vehicle is {0:.2f} m left of center'.format(abs(offset))
-        else:
-            msg = 'Vehicle is {0:.2f} m right of center'.format(abs(offset))
-            
-        cv2.putText(out_img, msg,(10, 120), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)    
-        
-    # return new image
-    return out_img
-
+    return out_img    
     
+# Define a class to receive the characteristics of each line detection
+class Line():
+    def __init__(self):
+        # 0  if last line was detected
+        # >0 number of subsequent undetected lines
+        self.num_undetected = 0
+        
+        # data for each the last n fits of the line:
+        self.xfits      = deque([],N_FITS)   # x values
+        self.fits       = deque([],N_FITS)   # polynomial coefficients
+        self.rads       = deque([],N_FITS)   # radius of curvature
+        self.car_dists  = deque([],N_FITS)   # distance in meters of vehicle center from the line
+        
+        # averaged data over the last n fits of the line:
+        self.best_xfit      = None           # x values     
+        self.best_fit       = None           # polynomial coefficients    
+        self.best_rad       = None           # radius of curvature
+        self.best_car_dist  = None           # distance in meters of vehicle center from the line
+        
+        #difference in fit coefficients between last and new fits
+        #self.diffs = np.array([0,0,0], dtype='float') 
+        #x values for detected line pixels
+        #self.allx = None  
+        #y values for detected line pixels
+        #self.ally = None    
 
-
+# function to keep track of line detection history
+def update_line(line, detected, xfit, fit, curverad, car_dist):
+    if detected: 
+        line.num_undetected = 0  
+        
+        # insert last one first. At other end will be pushed out.
+        line.xfits.appendleft(xfit) 
+        line.fits.appendleft(fit)
+        line.rads.appendleft(curverad)
+        line.car_dists.appendleft(car_dist)
+        
+        line.best_xfit      = np.mean(line.xfits, axis=0)     
+        line.best_fit       = np.mean(line.fits, axis=0) 
+        line.best_rad       = np.mean(line.rads) 
+        line.best_car_dist  = np.mean(line.car_dists) 
+    else:
+        line.num_undetected += 1
+         
 # In[15]:
 
 # put it all in one function...
-def process_image(image, left_fit_prev=None, right_fit_prev=None, 
-                  show_all=False, verbose=False,
-                  show_lanes=False):
+def process_image(image):
     # NOTE: The output you return should be a color image (3 channel) for processing video below
     # Returns the final output (image with lanes drawn on)
     global frame
+    global f_changes, fname_changes
+    global l_Line, r_Line
+    global search_around_best_fit
+    global show_all   
+    global verbose    
+    global show_windows
+    global show_final 
+    global debug_lanes 
+    
     frame += 1
     
     if show_all: 
@@ -1165,10 +1384,12 @@ def process_image(image, left_fit_prev=None, right_fit_prev=None,
     if show_all: show_image(cropped, 'Cropped', cmap='gray')        
 
     # Find the windows - from scratch
-    if left_fit_prev is None:
+    if search_around_best_fit == False:
         window_centroids = find_window_centroids(cropped,verbose=verbose)
 
-        left_fit, right_fit, left_curverad, right_curverad, offset, viz_warped =\
+        left_fit, right_fit, left_fitx, right_fitx, left_curverad, right_curverad,\
+        left_car_dist, right_car_dist,\
+        viz_warped =\
             fit_polynomials_trough_pixels_in_lane_windows(
                                            cropped, 
                                            window_centroids, WINDOW_WIDTH, WINDOW_HEIGHT,
@@ -1180,19 +1401,18 @@ def process_image(image, left_fit_prev=None, right_fit_prev=None,
                                                        left_fit_prev, right_fit_prev,
                                                        visualize=True,verbose=verbose)
     
-    if show_all or show_lanes: show_image(viz_warped, 'Warped Image with Lane Windows')
     
-    # Draw the lanes on original image
-    if left_fit is not None and right_fit is not None:
-        final_image = draw_lanes_on_original_image(image,left_fit, right_fit,
-                                                   left_curverad, right_curverad, offset,
-                                                   text1="frame {0}".format(frame))
-    else:
-        final_image = image
+    if show_all or show_windows: show_image(viz_warped, 'Warped Image with detected lanes & windows')
         
-    if show_all or show_lanes: show_image(final_image, 'Original Image with Lanes')
+    # Sanity check and then draw best fit lanes on original image
+    final_image = sanity_check_and_draw_lanes(image,left_fit, right_fit, left_fitx, right_fitx,
+                                              left_curverad, right_curverad, 
+                                              left_car_dist, right_car_dist,
+                                              text1="frame {0}".format(frame))
+
+    if show_all: show_image(final_image, 'Original Image with lanes')
     
-    return final_image, left_fit, right_fit, left_curverad, right_curverad, offset
+    return final_image
 
 
 # In[16]:
@@ -1216,6 +1436,7 @@ use_prev_fit = False
 file_dir = "test_images_project_video"
 file_dir_out = "test_images_project_video_output"
 files = os.listdir(file_dir)
+#files = ['project_video_output0011.jpg']
 
 #use_prev_fit=True
 #files = ['project_video_output0001.jpg',
@@ -1254,13 +1475,21 @@ files = os.listdir(file_dir)
 
 
 # test process_image function...
+l_Line = Line() # to keep track of left line history
+r_Line = Line() # to keep track of right line history
 frame=0
-left_fit_prev=None
-right_fit_prev=None
+f_changes = None # file to write debug information about detection changes
+fname_changes = 'detection_changes.txt'
+search_around_best_fit=False
 show_all   = False
 verbose    = False
-show_lanes = False
+show_windows = False
 show_final = False
+debug_lanes = True
+
+
+print('Writing detection changes to output file: '+fname_changes)
+
 for file in tqdm(files):
     file_in=file_dir+"/"+file
     file_out=file_dir_out+"/"+file
@@ -1268,663 +1497,13 @@ for file in tqdm(files):
     
     image = mpimg.imread(file_in)
     
-    if show_lanes:
+    if show_windows:
         show_image(image,title=file)
     
-    final_image, left_fit, right_fit, left_curverad, right_curverad, offset = \
-        process_image(image, 
-                      left_fit_prev, right_fit_prev,
-                      show_all=show_all, verbose=verbose,
-                      show_lanes=show_lanes)
-    plt.imsave(file_out,final_image)
+    final_image = process_image(image)
     
-    if use_prev_fit:
-        left_fit_prev = left_fit
-        right_fit_prev = right_fit
+    plt.imsave(file_out,final_image)
     
     if show_final:
         show_image(final_image,title=file)
-
-
-# # Test on Videos
-# 
-# We can test our solution on three provided videos:
-# - project_video.mp4
-# - challenge_video.mp4
-# - harder_challenge_video.mp4
-
-# In[ ]:
-
-# Import everything needed to edit/save/watch video clips
-from moviepy.editor import VideoFileClip
-from IPython.display import HTML
-
-
-# In[ ]:
-
-frame = 0
-project_video_output = 'project_video_output.mp4'
-clip1 = VideoFileClip("project_video.mp4")
-project_video_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
-get_ipython().magic('time project_video_clip.write_videofile(project_video_output, audio=False)')
-
-
-# In[ ]:
-
-HTML("""
-<video width="960" height="540" controls>
-  <source src="{0}">
-</video>
-""".format(project_video_output))
-
-
-# # ... old stuff...
-
-# In[ ]:
-
-#reading in an image
-image = mpimg.imread('test_images/straight_lines1.jpg')
-#printing out some stats and plotting
-print('This image is:', type(image), 'with dimesions:', image.shape)
-plt.imshow(image)  # if you wanted to show a single color channel image called 'gray', for example, call as plt.imshow(gray, cmap='gray')
-
-
-# Below are some helper functions to help get you started. They should look familiar from the lesson!
-
-# In[ ]:
-
-
-
-    
-def canny(img, low_threshold, high_threshold):
-    """Applies the Canny transform"""
-    return cv2.Canny(img, low_threshold, high_threshold)
-
-def gaussian_blur(img, kernel_size):
-    """Applies a Gaussian Noise kernel"""
-    return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
-
-def region_of_interest(img, vertices):
-    """
-    Applies an image mask.
-    
-    Only keeps the region of the image defined by the polygon
-    formed from `vertices`. The rest of the image is set to black.
-    """
-    #defining a blank mask to start with
-    mask = np.zeros_like(img)   
-    
-    #defining a 3 channel or 1 channel color to fill the mask with depending on the input image
-    if len(img.shape) > 2:
-        channel_count = img.shape[2]  # i.e. 3 or 4 depending on your image
-        ignore_mask_color = (255,) * channel_count
-    else:
-        ignore_mask_color = 255
-        
-    #filling pixels inside the polygon defined by "vertices" with the fill color    
-    cv2.fillPoly(mask, vertices, ignore_mask_color)
-    
-    #returning the image only where mask pixels are nonzero
-    masked_image = cv2.bitwise_and(img, mask)
-    return masked_image
-
-
-def draw_lines(img, lines, color=[255, 0, 0], thickness=2):
-    """
-    NOTE: this is the function you might want to use as a starting point once you want to 
-    average/extrapolate the line segments you detect to map out the full
-    extent of the lane (going from the result shown in raw-lines-example.mp4
-    to that shown in P1_example.mp4).  
-    
-    Think about things like separating line segments by their 
-    slope ((y2-y1)/(x2-x1)) to decide which segments are part of the left
-    line vs. the right line.  Then, you can average the position of each of 
-    the lines and extrapolate to the top and bottom of the lane.
-    
-    This function draws `lines` with `color` and `thickness`.    
-    Lines are drawn on the image inplace (mutates the image).
-    If you want to make the lines semi-transparent, think about combining
-    this function with the weighted_img() function below
-    """
-    for line in lines:
-        for x1,y1,x2,y2 in line:
-            cv2.line(img, (x1, y1), (x2, y2), color, thickness)
-
-def hough_lines(img, rho, theta, threshold, min_line_len, max_line_gap):
-    """
-    `img` should be the output of a Canny transform.
-        
-    Returns an image with hough lines drawn.
-    """
-    lines = cv2.HoughLinesP(img, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
-    line_img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
-    draw_lines(line_img, lines)
-    return line_img
-
-# Python 3 has support for cool math symbols.
-
-def weighted_img(img, initial_img, α=0.8, β=1., λ=0.):
-    """
-    `img` is the output of the hough_lines(), An image with lines drawn on it.
-    Should be a blank image (all black) with lines drawn on it.
-    
-    `initial_img` should be the image before any processing.
-    
-    The result image is computed as follows:
-    
-    initial_img * α + img * β + λ
-    NOTE: initial_img and img must be the same shape!
-    """
-    return cv2.addWeighted(initial_img, α, img, β, λ)
-
-
-# ## Test on Images
-# 
-# Now you should build your pipeline to work on the images in the directory "test_images"  
-# **You should make sure your pipeline works well on these images before you try the videos.**
-
-# In[ ]:
-
-os.listdir("test_images/")
-
-
-# run your solution on all test_images and make copies into the test_images directory).
-
-# In[ ]:
-
-# TODO: Build your pipeline that will draw lane lines on the test_images
-# then save them to the test_images directory.
-def draw_lanes_on_image(file_in, file_out, show_all=True, show_final=True):
-    ####################################################################
-    #reading in an image
-    image = mpimg.imread(file_in)
-    print ("******************************************************************")
-    print('Processing image from file: '+file_in)
-    combo = process_image(image, show_all, show_final)
-    
-    plt.imshow(combo)
-    plt.savefig(file_out)
-    print('Processed image saved as: ' + file_out)
-   
-def process_image(image, show_all=False, show_final=False):
-    # NOTE: The output you return should be a color image (3 channel) for processing video below
-    # TODO: put your pipeline here,
-    # you should return the final output (image with lines are drawn on lanes)
-    global frame
-    frame += 1
-    
-    print('Frame : ', str(frame),'-', type(image), 'with dimesions:', image.shape)
-    if show_all: show_image(image, 'Original Image')
-    
-    ####################################################################
-    # Make it gray scale
-    gray = grayscale(image)
-    if show_all: show_image(gray, 'Grayscale Image', cmap='gray')
-
-    ####################################################################
-    # Next we'll create a masked image with only region of interest (roi)
-    roi_vertices = calculate_region_of_interest(image, show_all)   
-    masked_gray = region_of_interest(gray, roi_vertices)
-    if show_all: show_image(masked_gray, 'Grayscale Region of Interest', cmap='Greys_r')
-    
-    ####################################################################
-    # "Equalize" the dark gray levels in region of interest, so the lighter
-    # lines that represent the lanes are more pronounced, and the canny
-    # edge detection will be more precise.
-    # 
-    # I did this to get challenge_frame_110 to work properly:
-    # (-) The road is concrete (light)
-    # (-) There are black tire skid marks that are detected by canny and
-    #      mess it all up without this step
-    #
-    equalize_gray_level_in_roi(masked_gray)
-    if show_all: show_image(masked_gray, 'Equalized gray level', cmap='Greys_r')
-    
-    ####################################################################
-    edges = find_edges_with_canny(masked_gray)
-    if show_all: show_image(edges, 'Canny Edges', cmap='Greys_r')
-    
-    ####################################################################
-    # Find the lanes, using hough transform
-    #
-    # Define the Hough transform parameters
-    rho             = 2          # distance resolution in pixels of the Hough grid
-    theta           = np.pi/180  # angular resolution in radians of the Hough grid
-    threshold       = 15         # minimum number of votes (intersections in Hough grid cell)
-    min_line_len    = 10         # minimum number of pixels making up a line
-    max_line_gap    = 5          # maximum gap in pixels between connectable line segments
-    
-    lines = cv2.HoughLinesP(edges, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
-    if lines is None :
-        print ('ERROR: No hough lines found')
-        return image
-    
-    if show_all:
-        line_img = np.zeros((edges.shape[0], edges.shape[1], 3), 
-                            dtype=np.uint8)
-        draw_lines(line_img, lines)
-        combo = weighted_img(line_img, image, α=0.8, β=1., λ=0.)
-        show_image(combo, 'Hough Lines on Image')
-
-    ####################################################################
-    # Draw the lanes on the original image    
-    line_img = np.zeros((image.shape[0], image.shape[1], 3), 
-                        dtype=np.uint8)
-    create_lanes_from_hough_lines(line_img, roi_vertices, lines, thickness=10)
-    combo = weighted_img(line_img, image, α=0.8, β=1., λ=0.)
-    if show_all or show_final: show_image(combo, 'Final Image with Lanes')
-
-    return combo
-
-def show_image(image, title, cmap=None ):
-    plt.title(title)
-    if cmap:
-        plt.imshow(image, cmap=cmap) # if you wanted to show a single color channel image called 'gray', for example, call as plt.imshow(gray, cmap='gray')
-    else:
-        plt.imshow(image)  
-    plt.show()
-    
-def calculate_region_of_interest(image, show_all):
-    imshape = image.shape
-    
-    # height of roi region
-    if roi_height == 0:
-        height = int( 0.4*imshape[0] )
-    else:
-        height = roi_height
-        
-    # bottom width of roi region
-    if roi_width_bot == 0:
-        width_bot = int( 0.80 * imshape[1] )
-    else:
-        width_bot = roi_width_bot
-        
-    # top width of roi region
-    if roi_width_top == 0:
-        width_top = int( 0.20 * imshape[1] )
-    else:
-        width_top = roi_width_top
-      
-    x_bot_min = roi_shift_bot + int( 0.5 * (imshape[1] - width_bot) )
-    x_bot_max = roi_shift_bot + int( 0.5 * (imshape[1] + width_bot) )
-    x_top_min = roi_shift_top + int( 0.5 * (imshape[1] - width_top) )
-    x_top_max = roi_shift_top + int( 0.5 * (imshape[1] + width_top) )
-    
-    # eliminate car hood from picture
-    y_bot = imshape[0] - hood_size
-    y_top = y_bot - height
-    
-    roi_vertices = np.array([[(x_bot_min,y_bot),
-                              (x_top_min, y_top), 
-                              (x_top_max, y_top), 
-                              (x_bot_max,y_bot)]], dtype=np.int32)
-    
-    if show_all:
-        plt.title('Region of interest on Image. Wb,Wt,H,Sb,St,Sv='+
-                  str(x_bot_max-x_bot_min)+','+
-                  str(x_top_max-x_top_min)+','+
-                  str(y_top-y_bot)+','+
-                  str(roi_shift_bot)+','+
-                  str(roi_shift_top)+','+
-                  str(hood_size))
-        line_img = np.zeros((image.shape[0], image.shape[1], 3), 
-                            dtype=np.uint8)
-        p=roi_vertices[0]
-        roi_lines = np.array([[[ p[0, 0], p[0, 1], p[1, 0], p[1, 1] ]],
-                              [[ p[1, 0], p[1, 1], p[2, 0], p[2, 1] ]],
-                              [[ p[2, 0], p[2, 1], p[3, 0], p[3, 1] ]],
-                              [[ p[3, 0], p[3, 1], p[0, 0], p[0, 1] ]]], 
-                             dtype=np.int32)
-        draw_lines(line_img, roi_lines)
-        combo = weighted_img(line_img, image, α=0.8, β=1., λ=0.)
-        plt.imshow(combo)
-        plt.show()
-        
-    return roi_vertices
-
-def equalize_gray_level_in_roi(masked_gray): 
-    # calculate the average gray level in the region of interest   
-    gray_average = int( np.average(masked_gray[np.nonzero(masked_gray)]) )
-    
-    # assign this average gray level to all regions that are darker than this
-    # average value
-    masked_gray[ masked_gray < gray_average ] = gray_average
-
-def find_edges_with_canny(masked_gray):    
-    # See: http://homepages.inf.ed.ac.uk/rbf/HIPR2/canny.htm
-    #
-    # Define a kernel size for Gaussian smoothing / blurring
-    # Note: this step is optional as cv2.Canny() applies a 5x5 Gaussian internally
-    kernel_size = 5
-    gaussian_blur(masked_gray, kernel_size)
-    
-    # Define parameters for Canny and run it
-    # thresholds between 0 and 255
-    low_threshold = 50
-    high_threshold = 150
-    edges = canny(masked_gray, low_threshold, high_threshold)
-    
-    return edges 
-   
-def create_lanes_from_hough_lines(img, roi_vertices, lines, color=[255, 0, 0], thickness=None):
-    """
-    This routine attempts to extract the left and right lane from the provided
-    hough lines, and draws them on the image.
-    
-    The method used is as follows:
-    (-) each line is extrapolated to the top and bottom of the region of interest
-    (-) it will be discarded if the intersection at the top and bottom is outside
-        the region of interest.
-    (-) the remaining lines are assigned to the left lane if the angle is negative,
-        else they are assigned to the right lane
-    (-) the locations of the line intersections with the top and bottom of 
-        the region of interest are averaged to provide the lane end points
-        
-    NOTE: This logic ONLY works if the lanes within the region of interest are
-          straight.
-    """
-    #
-    # extrapolate start and end points for each line to boundary of region of interest
-    #
-    y_top_roi    = roi_vertices[0, 1, 1]
-    y_bot_roi    = roi_vertices[0, 0, 1]
-    
-    x_top_roi_min   = roi_vertices[0, 1, 0]
-    x_top_roi_max   = roi_vertices[0, 2, 0]
-    x_bot_roi_min   = roi_vertices[0, 0, 0]
-    x_bot_roi_max   = roi_vertices[0, 3, 0]
-    
-    x_tops_left   = []
-    x_bots_left   = []
-    
-    x_tops_right   = []
-    x_bots_right   = []
-    
-    for line in lines:
-        for x1,y1,x2,y2 in line:
-        
-            # fit a line (y=Ax+B) through this line
-            # np.polyfit() returns the coefficients [A, B] of the fit
-            fit_line = np.polyfit((x1, x2), (y1, y2), 1)
-            A, B = fit_line
-            
-            # skip lines with very small slope (A)
-            if abs(A) < 0.1:
-                continue
-            
-            # calculate intersection with top & bottom boundary of region of interest
-            x_top = (y_top_roi - B) / A
-            x_bot = (y_bot_roi - B) / A
-            
-            # skip this line if either the top or bottom points are outside region of interest
-            if x_top < x_top_roi_min or x_top > x_top_roi_max:
-                continue
-            if x_bot < x_bot_roi_min or x_bot > x_bot_roi_max:
-                continue
-            
-            # negative angle line --> left lane
-            if A < 0:
-                x_tops_left.append(x_top)
-                x_bots_left.append(x_bot)
-            else:
-                x_tops_right.append(x_top)
-                x_bots_right.append(x_bot)
-    
-    # if we didn't find a top or bottom, then skip this image
-    if (len(x_tops_left) == 0 or
-        len(x_bots_left) == 0 or
-        len(x_tops_right) == 0 or
-        len(x_bots_right) == 0 ):
-        print ('Not all end points found --> skipping this image !!')
-        return
-    
-    x_top_left_average  = int( np.array(x_tops_left).mean()  )
-    x_top_right_average = int( np.array(x_tops_right).mean() )
-    x_bot_left_average  = int( np.array(x_bots_left).mean()  )
-    x_bot_right_average = int( np.array(x_bots_right).mean() )
-    
-    x_top_left_width  = max(x_tops_left)  - min(x_tops_left)
-    x_top_right_width = max(x_tops_right) - min(x_tops_right)
-    x_bot_left_width  = max(x_bots_left)  - min(x_bots_left)
-    x_bot_right_width = max(x_bots_right) - min(x_bots_right)
-    
-    if thickness == None:
-        thickness = int( 0.5*sum( [x_top_left_width ,
-                                   x_top_right_width,
-                                   x_bot_left_width ,
-                                   x_bot_right_width] ) / 4 )
-    
-    # plot left lane                 
-    cv2.line(img, (x_bot_left_average, y_bot_roi), 
-                  (x_top_left_average, y_top_roi), color, thickness)
-    
-    # plot right lane                 
-    cv2.line(img, (x_bot_right_average, y_bot_roi), 
-                  (x_top_right_average, y_top_roi), color, thickness)
-
-if __name__ == '__main__':
-    # Import everything needed to edit/save/watch video clips
-    from moviepy.editor import VideoFileClip
-    from IPython.display import HTML
-    
-    ################################################################
-    # process some test files
-    #
-    file_dir = "test_images"
-    file_dir_out = "test_images_output"
-    files = os.listdir(file_dir)
- 
-    frame = 0
-    hood_size=45
-    roi_height=200
-    roi_width_bot=1200
-    roi_width_top=500
-    roi_shift_bot=0
-    roi_shift_top=0
-    for file in files:
-        frame = 0
-        draw_lanes_on_image(file_in=file_dir+"/"+file, 
-                            file_out=file_dir_out+"/with_lanes_"+file,
-                            show_all=False, show_final=True)
-          
-    
-
-
-# ## Test on Videos
-# 
-# You know what's cooler than drawing lanes over images? Drawing lanes over video!
-# 
-# We can test our solution on three provided videos:
-# 
-# `project_video.mp4`
-# 
-# `challenge_video.mp4`
-# 
-# `harder_challenge_video.mp4`
-# 
-# **Note: if you get an `import error` when you run the next cell, try changing your kernel (select the Kernel menu above --> Change Kernel).  Still have problems?  Try relaunching Jupyter Notebook from the terminal prompt. Also, check out [this forum post](https://carnd-forums.udacity.com/questions/22677062/answers/22677109) for more troubleshooting tips.**
-# 
-# **If you get an error that looks like this:**
-# ```
-# NeedDownloadError: Need ffmpeg exe. 
-# You can download it by calling: 
-# imageio.plugins.ffmpeg.download()
-# ```
-# **Follow the instructions in the error message and check out [this forum post](https://carnd-forums.udacity.com/display/CAR/questions/26218840/import-videofileclip-error) for more troubleshooting tips across operating systems.**
-
-# In[ ]:
-
-# Import everything needed to edit/save/watch video clips
-from moviepy.editor import VideoFileClip
-from IPython.display import HTML
-
-
-# In[ ]:
-
-# def process_image is coded up above
-
-
-# Let's try the project_video.mp4 first ...
-
-# In[ ]:
-
-frame = 0
-hood_size=45
-roi_height=200
-roi_width_bot=1200
-roi_width_top=500
-roi_shift_bot=0
-roi_shift_top=0
-project_video_output = 'project_video_output.mp4'
-clip1 = VideoFileClip("project_video.mp4")
-project_video_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
-get_ipython().magic('time project_video_clip.write_videofile(project_video_output, audio=False)')
-
-
-# Play the video inline, or if you prefer find the video in your filesystem (should be in the same directory) and play it in your video player of choice.
-
-# In[ ]:
-
-HTML("""
-<video width="960" height="540" controls>
-  <source src="{0}">
-</video>
-""".format(project_video_output))
-
-
-# **At this point, if you were successful you probably have the Hough line segments drawn onto the road, but what about identifying the full extent of the lane and marking it clearly as in the example video (P1_example.mp4)?  Think about defining a line to run the full length of the visible lane based on the line segments you identified with the Hough Transform.  Modify your draw_lines function accordingly and try re-running your pipeline.**
-
-# Now for the one with the solid yellow lane on the left. This one's more tricky!
-
-# In[ ]:
-
-frame = 0
-hood_size=0
-roi_height=200
-roi_width_bot=810
-roi_width_top=150
-roi_shift_bot=45
-roi_shift_top=15
-yellow_output = 'yellow.mp4'
-clip2 = VideoFileClip('solidYellowLeft.mp4')
-yellow_clip = clip2.fl_image(process_image)
-get_ipython().magic('time yellow_clip.write_videofile(yellow_output, audio=False)')
-
-
-# HTML("""
-# <video width="960" height="540" controls>
-#   <source src="{0}">
-# </video>
-# """.format(yellow_output))
-
-# # Reflections
-# 
-# Congratulations on finding the lane lines!  As the final step in this project, we would like you to share your thoughts on your lane finding pipeline... specifically, how could you imagine making your algorithm better / more robust?  Where will your current algorithm be likely to fail?
-# 
-# Please add your thoughts below,  and if you're up for making your pipeline more robust, be sure to scroll down and check out the optional challenge video below!
-# 
-# ---
-# My pipeline was largely created based on frame 110 of the challenge video:
-# <figure>
-#  <img src="challenge_frame_110_image-0.jpg" width="380" alt="Original" />
-# </figure>
-# 
-# The steps take are best explained by this sequence of pictures:
-# 
-# <figure>
-#  <img src="challenge_frame_110_image-1.jpg" width="380" alt="Grayscale" />
-# </figure>
-# 
-# <figure>
-#  <img src="challenge_frame_110_image-2.jpg" width="380" alt="ROI" />
-# </figure>
-# 
-# <figure>
-#  <img src="challenge_frame_110_image-3.jpg" width="380" alt="Gray Scale ROI" />
-# </figure>
-# 
-# <figure>
-#  <img src="challenge_frame_110_image-4.jpg" width="380" alt="Equalized" />
-# </figure>
-# 
-# <figure>
-#  <img src="challenge_frame_110_image-5.jpg" width="380" alt="Canny Edges" />
-# </figure>
-# 
-# <figure>
-#  <img src="challenge_frame_110_image-6.jpg" width="380" alt="Hough Lines" />
-# </figure>
-# 
-# <figure>
-#  <img src="challenge_frame_110_image-7.jpg" width="380" alt="Final Image" />
-# </figure>
-#  
-# Some key decisions I made along the way:
-# 
-# 1. I parameterized the inputs for the region of interest (roi):
-#         hood_size
-#         roi_height
-#         roi_width_bot
-#         roi_width_top
-#         roi_shift_bot
-#         roi_shift_top
-#     
-#     My logic  strongly depends on having a well defined region of interest.
-# 
-# 2. I 'equalize' the grey level in the region of interest.
-# ...This greatly improves the visibility of the lanes in the image.
-# ...See function: equalize_gray_level_in_roi
-#     
-# 3. All images and videos have straight lanes in the region of interest. I make use of this fact, in two ways:
-# ..* To select what hough lines belong to the lanes, I extrapolate them to the top and bottom of the region of interest. If they intersect outside of the region of interest then they obviously are not part of the lanes.
-# 
-# ..* To determine the end points of the lanes, I simply average the intersection points of the selected lines with the top and bottom of the region of interest. The lanes are then drawn with a fixed thickness.
-# 
-# ## Weaknesses
-# 
-# The weakest aspects of my approach are:
-# 
-# * The requirement to manually set the region of interest. If the car drifts, I can see that we lose the lanes very easily.
-# 
-# * The 'equalizing' of gray level in the region of interest does not seem so robust. It works ok for all tests, but I can imagine it will fail on other cases.
-# 
-# * The logic only works on straight lines.
-# 
-
-# ## Submission
-# 
-# If you're satisfied with your video outputs it's time to submit!  Submit this ipython notebook for review.
-# 
-
-# ## Optional Challenge
-# 
-# Try your lane finding pipeline on the video below.  Does it still work?  Can you figure out a way to make it more robust?  If you're up for the challenge, modify your pipeline so it works with this video and submit it along with the rest of your project!
-
-# In[ ]:
-
-frame = 0
-hood_size=55
-roi_height=200
-roi_width_bot=840
-roi_width_top=180
-roi_shift_bot=35
-roi_shift_top=25
-challenge_output = 'extra.mp4'
-clip2 = VideoFileClip('challenge.mp4')
-challenge_clip = clip2.fl_image(process_image)
-get_ipython().magic('time challenge_clip.write_videofile(challenge_output, audio=False)')
-
-
-# In[ ]:
-
-HTML("""
-<video width="960" height="540" controls>
-  <source src="{0}">
-</video>
-""".format(challenge_output))
-
-
-# In[ ]:
-
-
 
