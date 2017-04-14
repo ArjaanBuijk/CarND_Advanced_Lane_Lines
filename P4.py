@@ -648,15 +648,14 @@ CROP_RIGHT = 1260
 CROP_BOT = 710
 CROP_TOP = 0
 
+# acceptance criteria for windows during search over pixels in warped image.
 MIN_CONVSIGNAL = 50  # if window of convolution has signal lower than this value, it will be rejected
-#MIN_CONVSIGNAL = 25  # if window of convolution has signal lower than this value, it will be rejected
 
-MAX_REJECTED = 100 # if this number of windows are rejected in sequence, reject all following windows
-                   # this avoids picking up wrong blobs in strongly curved lanes
+N_FITS = 2 # number of detected lines that we save
 
-N_FITS = 5 # number of detected lines that we save
-
-MAX_CAR_DIST_CHANGE_P = 5.0  # in %, max allowed change in distance to car center
+# acceptance criteria for lane detection compared to best fit
+MAX_CAR_DIST_CHANGE_P =  7.5  # in %, max allowed change in distance to car center
+MAX_FIT2_CHANGE_P     = 25.0  # in %, max allowed change in fit[2]
 
 def window_mask(width, height, img_ref, center,level):
     output = np.zeros_like(img_ref)
@@ -744,14 +743,13 @@ def find_window_centroids(image, verbose=False):
         
         # If best centroid has too low a convsignal, reject it.
         # Mark this by setting it to negative value of center of previous layer
-        # Also, reject any window once certain number have been rejected in sequence
-        if l_num_rejected_sequence >= MAX_REJECTED or l_convsignal < MIN_CONVSIGNAL:
+        if l_convsignal < MIN_CONVSIGNAL:
             l_center = -abs(window_centroids[-1][0])
             l_num_rejected_sequence += 1
         else:
             l_num_rejected_sequence = 0
             
-        if r_num_rejected_sequence >= MAX_REJECTED or r_convsignal < MIN_CONVSIGNAL:
+        if r_convsignal < MIN_CONVSIGNAL:
             r_center = -abs(window_centroids[-1][1])
             r_num_rejected_sequence += 1
         else:
@@ -1082,11 +1080,13 @@ def sanity_check_and_draw_lanes(img,left_fit, right_fit, left_fitx, right_fitx,
     right_lane_accepted = True 
     
     if (left_fit is None or
-        abs(left_car_dist_change_p)  > MAX_CAR_DIST_CHANGE_P): 
+        abs(left_car_dist_change_p)  > MAX_CAR_DIST_CHANGE_P or 
+        abs(left_fit_change_p[2])    > MAX_FIT2_CHANGE_P): 
         left_lane_accepted = False
     
     if (right_fit is None or 
-        abs(right_car_dist_change_p) > MAX_CAR_DIST_CHANGE_P): 
+        abs(right_car_dist_change_p) > MAX_CAR_DIST_CHANGE_P or 
+        abs(right_fit_change_p[2])   > MAX_FIT2_CHANGE_P): 
         right_lane_accepted = False
     
     
@@ -1163,8 +1163,9 @@ def sanity_check_and_draw_lanes(img,left_fit, right_fit, left_fitx, right_fitx,
         y_shift    = 20
         fmt = '{0}, {1:.2f}, {2:.2f}, {3:.2f}, {4:.2f}'
         msg=[]
+        msg.append('curvature, car_dist, fit')
         msg.append('_______________________________')
-        msg.append('left    : curvature, car_dist, fit')
+        msg.append('left accepted :  '+str(left_lane_accepted))
         if left_fit is not None:
             msg.append('detected: '+fmt.format(int(left_curverad), left_car_dist, *left_fit))
         else:
@@ -1178,7 +1179,7 @@ def sanity_check_and_draw_lanes(img,left_fit, right_fit, left_fitx, right_fitx,
         for r,d,f in zip(l_Line.rads, l_Line.car_dists, l_Line.fits):
             msg.append('history  : {'+fmt.format(int(r),d,*f))        
         msg.append('_______________________________')
-        msg.append('right   : curvature, car_dist, fit')
+        msg.append('right accepted : '+str(right_lane_accepted))
         if right_fit is not None:
             msg.append('detected: '+fmt.format(int(right_curverad), right_car_dist, *right_fit))    
         else:
@@ -1489,6 +1490,10 @@ debug_lanes = True
 
 
 print('Writing detection changes to output file: '+fname_changes)
+
+# for debugging: start at later frame
+#files = files[944:]
+#frame = 944
 
 for file in tqdm(files):
     file_in=file_dir+"/"+file
