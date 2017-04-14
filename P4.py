@@ -608,20 +608,20 @@ def warp(img, M):
     warped = cv2.warpPerspective(img, M, img_size, flags=cv2.INTER_LINEAR)    
     return warped
 
-# As a test, warp the image, show the grid
-image = np.copy(img)
-# draw source lines on the image in red
-draw_lines_on_image(image, src_lines, color=[255, 0, 0], thickness=2)
-# now warp it
-warped = warp(image,M)
-# draw destination lines on the warped image in green
-draw_lines_on_image(warped, dst_lines, color=[0, 255, 0], thickness=2)
-fig = plt.figure(figsize=(15,15))
-ax = fig.gca()
-ax.set_xticks(np.arange(0, warped.shape[1], 50))
-ax.set_yticks(np.arange(0, warped.shape[0], 50))
-plt.imshow(warped)
-plt.grid(True)
+### As a test, warp the image, show the grid
+##image = np.copy(img)
+### draw source lines on the image in red
+##draw_lines_on_image(image, src_lines, color=[255, 0, 0], thickness=2)
+### now warp it
+##warped = warp(image,M)
+### draw destination lines on the warped image in green
+##draw_lines_on_image(warped, dst_lines, color=[0, 255, 0], thickness=2)
+##fig = plt.figure(figsize=(15,15))
+##ax = fig.gca()
+##ax.set_xticks(np.arange(0, warped.shape[1], 50))
+##ax.set_yticks(np.arange(0, warped.shape[0], 50))
+##plt.imshow(warped)
+##plt.grid(True)
 
 
 # # 5. Detect lane lines
@@ -781,7 +781,7 @@ def find_window_centroids(image, verbose=False):
     return window_centroids
 
 # function to extract left and right lane pixel indices inside the windows
-def fit_polynomials_trough_pixels_in_lane_windows(binary_img_in, 
+def find_pixels_in_lane_windows(binary_img_in, 
                           window_centroids, window_width, window_height,
                           visualize=True,verbose=False):
     
@@ -859,11 +859,23 @@ def fit_polynomials_trough_pixels_in_lane_windows(binary_img_in,
     if len(right_lane_inds) > 0:
         right_lane_inds = np.concatenate(right_lane_inds)
 
+    return left_lane_inds, right_lane_inds, out_img
+
+def fit_polynomials_through_pixels(binary_img, out_img,
+                                   left_lane_inds, right_lane_inds,
+                                   visualize=True, verbose=False):
+    # Identify the x and y positions of all nonzero pixels in the image
+    nonzero = binary_img.nonzero()
+    nonzeroy = np.array(nonzero[0])
+    nonzerox = np.array(nonzero[1])
+    
     # Extract left and right line pixel positions
-    leftx = nonzerox[left_lane_inds]
-    lefty = nonzeroy[left_lane_inds] 
-    rightx = nonzerox[right_lane_inds]
-    righty = nonzeroy[right_lane_inds] 
+    if len(left_lane_inds) >0:
+        leftx = nonzerox[left_lane_inds]
+        lefty = nonzeroy[left_lane_inds] 
+    if len(right_lane_inds) > 0:
+        rightx = nonzerox[right_lane_inds]
+        righty = nonzeroy[right_lane_inds] 
 
     # Fit a second order polynomial to each
     left_fit = None
@@ -873,12 +885,10 @@ def fit_polynomials_trough_pixels_in_lane_windows(binary_img_in,
     if len(right_lane_inds) > 0:
         right_fit = np.polyfit(righty, rightx, 2)
     
-    
     # ===========================================================
     # Calculate lane curvature in meters
     left_curverad = None
     right_curverad = None
-    
     
     # Define conversions in x and y from pixels space to meters
     ym_per_pix = 30/720 # meters per pixel in y dimension
@@ -928,7 +938,7 @@ def fit_polynomials_trough_pixels_in_lane_windows(binary_img_in,
         right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
         
     # If requested, color lane pixels and draw polynomial on image
-    if visualize:
+    if visualize:       
         # color left-lane pixels red
         out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
         # color right-lane pixels blue
@@ -947,13 +957,13 @@ def fit_polynomials_trough_pixels_in_lane_windows(binary_img_in,
                 p2 = (int(right_fitx[i+1]), int(ploty[i+1]))
                 cv2.line(out_img, p1, p2, [255, 255, 0], 2)
     
-    
     return left_fit, right_fit, left_fitx, right_fitx, left_curverad, right_curverad,\
            left_car_dist, right_car_dist,\
            out_img
 
-def find_new_fit(warped, left_fit, right_fit,
-                 visualize=True,verbose=False):    
+def find_pixels_around_best_fit(warped,
+                 visualize=True,verbose=False): 
+    global l_Line, r_Line
     # Assume you now have a new warped binary image 
     # from the next frame of video (also called "warped")
     # It's now much easier to find line pixels!
@@ -961,39 +971,37 @@ def find_new_fit(warped, left_fit, right_fit,
     nonzeroy = np.array(nonzero[0])
     nonzerox = np.array(nonzero[1])
     margin = 100
-    left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] - margin)) & (nonzerox < (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] + margin))) 
-    right_lane_inds = ((nonzerox > (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] - margin)) & (nonzerox < (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] + margin)))  
-        
-    # Again, extract left and right line pixel positions &
-    # Fit a second order polynomial to each
-    left_fit = None
-    right_fit = None
-    if len(left_lane_inds) >0:
-        leftx = nonzerox[left_lane_inds]
-        lefty = nonzeroy[left_lane_inds] 
-        left_fit = np.polyfit(lefty, leftx, 2)
-    if len(right_lane_inds) > 0:
-        rightx = nonzerox[right_lane_inds]
-        righty = nonzeroy[right_lane_inds]
-        right_fit = np.polyfit(righty, rightx, 2)
+    left_lane_inds = ((nonzerox > (l_Line.best_fit[0]*(nonzeroy**2) + l_Line.best_fit[1]*nonzeroy + l_Line.best_fit[2] - margin)) & (nonzerox < (l_Line.best_fit[0]*(nonzeroy**2) + l_Line.best_fit[1]*nonzeroy + l_Line.best_fit[2] + margin))) 
+    right_lane_inds = ((nonzerox > (r_Line.best_fit[0]*(nonzeroy**2) + r_Line.best_fit[1]*nonzeroy + r_Line.best_fit[2] - margin)) & (nonzerox < (r_Line.best_fit[0]*(nonzeroy**2) + r_Line.best_fit[1]*nonzeroy + r_Line.best_fit[2] + margin)))  
     
-    # Generate x and y values for plotting
-    ploty = np.linspace(0, warped.shape[0]-1, warped.shape[0] )
-    if left_fit is not None:
-        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-    if right_fit is not None:
-        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-    #
-    # If requested, create & return a new image that visualizes the process
-    result_img = None
-    if visualize:
+    if visualize:   
+        # If requested, create & return a new image that visualizes the process
+        result_img = None
+        
+        # Again, extract left and right line pixel positions &
+        # Fit a second order polynomial to each
+        left_fit = None
+        right_fit = None
+        if len(left_lane_inds) >0:
+            leftx = nonzerox[left_lane_inds]
+            lefty = nonzeroy[left_lane_inds] 
+            left_fit = np.polyfit(lefty, leftx, 2)
+        if len(right_lane_inds) > 0:
+            rightx = nonzerox[right_lane_inds]
+            righty = nonzeroy[right_lane_inds]
+            right_fit = np.polyfit(righty, rightx, 2)
+        
+        # Generate x and y values for plotting
+        ploty = np.linspace(0, warped.shape[0]-1, warped.shape[0] )
+        if left_fit is not None:
+            left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+        if right_fit is not None:
+            right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+        #
+    
         out_img = binary_to_rgb(warped)
         window_img = np.zeros_like(out_img)
-        # Color in left and right line pixels
-        if left_fit is not None:
-            out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
-        if right_fit is not None:
-            out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+
         # Generate a polygon to illustrate the search window area
         # And recast the x and y points into usable format for cv2.fillPoly()
         if left_fit is not None:
@@ -1012,22 +1020,10 @@ def find_new_fit(warped, left_fit, right_fit,
             cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
         
         result_img = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
+    else:
+        result_img = warped
         
-        # Draw the fitted polynomial as yellow lines on the result_img
-        for i in range(len(ploty) - 1):
-            # left lane
-            if left_fit is not None:
-                p1 = (int(left_fitx[i]  ), int(ploty[i]  ))
-                p2 = (int(left_fitx[i+1]), int(ploty[i+1]))
-                cv2.line(result_img, p1, p2, [255, 255, 0], 2)
-            # right lane
-            if right_fit is not None:
-                p1 = (int(right_fitx[i]  ), int(ploty[i]  ))
-                p2 = (int(right_fitx[i+1]), int(ploty[i+1]))
-                cv2.line(result_img, p1, p2, [255, 255, 0], 2)
-        
-    return left_fit, right_fit, result_img
-    
+    return left_lane_inds, right_lane_inds, result_img
 
 # using techniques described here: http://www.pyimagesearch.com/2016/03/07/transparent-overlays-with-opencv/
 def sanity_check_and_draw_lanes(img,left_fit, right_fit, left_fitx, right_fitx,
@@ -1385,24 +1381,27 @@ def process_image(image):
     if show_all: show_image(cropped, 'Cropped', cmap='gray')        
 
     # Find the windows - from scratch
-    if search_around_best_fit == False:
+    if (search_around_best_fit == False or
+        l_Line.best_fit is None or
+        r_Line.best_fit is None):
         window_centroids = find_window_centroids(cropped,verbose=verbose)
-
-        left_fit, right_fit, left_fitx, right_fitx, left_curverad, right_curverad,\
-        left_car_dist, right_car_dist,\
-        viz_warped =\
-            fit_polynomials_trough_pixels_in_lane_windows(
-                                           cropped, 
-                                           window_centroids, WINDOW_WIDTH, WINDOW_HEIGHT,
-                                           visualize=True,verbose=verbose)
+        
+        left_lane_inds, right_lane_inds, viz_warped =\
+            find_pixels_in_lane_windows(cropped, 
+                                        window_centroids, WINDOW_WIDTH, WINDOW_HEIGHT,
+                                        visualize=True,verbose=verbose)
     else:
-        # Use this during video processing !
-        # Find the windows - in region around left_fit, right_fit of previous image
-        left_fit, right_fit, viz_warped = find_new_fit(cropped, 
-                                                       left_fit_prev, right_fit_prev,
-                                                       visualize=True,verbose=verbose)
+        # Search in band around best fit
+        left_lane_inds, right_lane_inds, viz_warped =\
+            find_pixels_around_best_fit(cropped, 
+                                        visualize=True, verbose=verbose)
     
-    
+    left_fit, right_fit, left_fitx, right_fitx, left_curverad, right_curverad,\
+    left_car_dist, right_car_dist,\
+    viz_warped = fit_polynomials_through_pixels(cropped, viz_warped,
+                                                left_lane_inds, right_lane_inds,
+                                                visualize=True,verbose=verbose)
+        
     if show_all or show_windows: show_image(viz_warped, 'Warped Image with detected lanes & windows')
         
     # Sanity check and then draw best fit lanes on original image
@@ -1481,12 +1480,17 @@ r_Line = Line() # to keep track of right line history
 frame=0
 f_changes = None # file to write debug information about detection changes
 fname_changes = 'detection_changes.txt'
-search_around_best_fit=False
-show_all   = False
-verbose    = False
+
+# this activates search around best fit. 
+# Always leave on, unless you want to debug new window search logic
+search_around_best_fit=True
+
+# for debugging only:
+show_all     = False
+verbose      = False
 show_windows = False
-show_final = False
-debug_lanes = True
+show_final   = False
+debug_lanes  = False
 
 
 print('Writing detection changes to output file: '+fname_changes)
