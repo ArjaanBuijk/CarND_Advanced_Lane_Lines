@@ -109,9 +109,9 @@ This function takes an rgb image, and applies 3 thresholding mechanisms:
 
 4. At the end, these 3 thresholds are combined in a single binary image used to detect the lanes.
 
-(*) The <b>blackening</b> technique is a method where I take the average level in a certain region, and then set to black (0) every pixel that is below this average level. This turned out to be a very efficient method to deal with black stripes & smudges on the road, and was key in getting video 1 & 2 to work. Unfortunately, it is not a good thing to do when there are a lot of shadows, because it tends to blacken away everything that is covered by the shadows. This is why video 3 is not working that great, and I am looking for a better approach that deals with shadows of video 3 and the dark lines and smudges of videos 1 & 2. 
+(*) The <b>blackening</b> technique is a method where I take the average level in a certain region, and then set to black (0) every pixel that is below this average level. This turned out to be a very efficient method to deal with black stripes & smudges on the road, and was key in getting video 1 & 2 to work. Unfortunately, it is not a good thing to do when there are a lot of shadows, because it tends to blacken away everything that is covered by the shadows. This is why video 3 is not working that great, and I am looking for a better approach that deals with shadows of video 3 while also taking care of the dark lines and smudges of videos 1 & 2. 
 
-It was an effort of trial-and-error to find a good combination of blackening, thresholding and clahe that works most of the time. 
+It was simply a lot of trial-and-error to find a good combination of blackening, thresholding and clahe that works most of the time. 
 
 In the last code cell of the notebook, it is possible to test the lane detection on individual images, with option to display all intermediate steps.
  
@@ -140,13 +140,6 @@ One special note is that I used a destination image that is twice as wide as the
 # 7. Detect Lanes
 
 In code cell 9 the logic for lane detection is defined.
-
-At the top of this code cell, some tuning parameters are defined for:
-
-- Size of the sliding window and side-ways margin used during initial lane search over thresholded binary image
-- Size of the cropped window used during lane search over thresholded binary image
-- Number of curves we store to average out the polynomial fit
-- Acceptance criteria of the polynomial lines that represent the left and right lanes
 
 The logic of lane detection is as follows:
 
@@ -184,11 +177,11 @@ Furthermore, after the thresholding is done, and we have a binary image, we do n
 
 <b>Fit polynomials through selected pixels</b>
 
-Once the valid pixels are selected from the thresholded binary image, either through windows search or in a region around the previously found lanes, a polynomial is fit through it. One polynomial for the left lane, and one for the right lane.
+Once the valid pixels are selected from the thresholded binary image, either through windows search or in a region around the previously found lanes, a polynomial is fit through them. One polynomial for the left lane, and one for the right lane.
 
-To avoid jittery behavior, the pixels of the best fit curve of previously determined lanes are also activated. 
+To avoid jittery behavior and improve stability, the pixels of the best fit curve of previously determined lanes are also activated. 
 
-This polynomial fit is already shown as yellow lines in the images above of pixel selection with windows search or with best fit band.
+Examples of these polynomial fits are already shown as yellow lines in the images above.
 
 
 # 8. Sanity check and display lanes onto original image
@@ -213,4 +206,4 @@ If it is not OK, one or possibly both lane detections are ignored. A counter for
 
 # 9. Summary
 
-Overall, it was an interesting exercise that forced me to explore a lot of new things. In the end I feel that something basic is still missing in my logic to deal with shadows and very bright spots that obscure the yellow and white lanes. When adding logic to deal with one issue, it tends to break the logic for another, and it feels a bit like playing whack-a-mole.
+Overall, it was an interesting exercise that forced me to explore a lot of new things. In the end I feel that something basic is still missing in my logic to deal with shadows and very bright spots that obscure the yellow and white lanes. When adding logic to deal with one issue, it tends to break the logic for the other, and it feels a bit like playing whack-a-mole...
