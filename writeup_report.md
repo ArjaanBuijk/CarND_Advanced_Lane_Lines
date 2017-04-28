@@ -21,7 +21,7 @@ The write up you are reading provides some additional information.
 
 ---
 
-#### 1. Submission includes all required files
+# 1. Submission includes all required files
 
 My project includes the following files:
 
@@ -44,13 +44,13 @@ My project includes the following files:
   
 ---
 
-#### 2. Utility functions
+# 2. Utility functions
 
 In code cell 2, there are some utility functions to plot images, and a function to draw lines onto an image.
 
 ---
 
-#### 3. Camera calibration
+# 3. Camera calibration
 
 The calibrating of the camera is done in code cells 3 & 4.
 
@@ -71,7 +71,7 @@ The camera calibration is done by verifying how much a chessboard is being defor
 
 ---
 
-#### 4. Distortion correction
+# 4. Distortion correction
 
 A test distortion correct images is done in code cells 5 & 6.
 
@@ -81,7 +81,7 @@ A test distortion correct images is done in code cells 5 & 6.
 Model Architecture and Training Strategy
 ---
 
-#### 5. Thresholding pipeline
+# 5. Thresholding pipeline
 
 In code cell 7 the thresholding logic is defined in the function: pipeline
 
@@ -116,7 +116,7 @@ It was an effort of trial-and-error to find a good combination of blackening, th
 In the last code cell of the notebook, it is possible to test the lane detection on individual images, with option to display all intermediate steps.
  
 
-#### 6. Perspective Transform
+# 6. Perspective Transform
 
 In code cell 8 the perspective transform logic is defined.
 
@@ -137,7 +137,7 @@ One special note is that I used a destination image that is twice as wide as the
 
 ![image](https://github.com/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/images//Perspective_Transform_2.jpg?raw=true)
 
-#### 6. Detect Lanes
+# 7. Detect Lanes
 
 In code cell 9 the logic for lane detection is defined.
 
@@ -191,7 +191,7 @@ To avoid jittery behavior, the pixels of the best fit curve of previously determ
 This polynomial fit is already shown as yellow lines in the images above of pixel selection with windows search or with best fit band.
 
 
-#### 7. Sanity check and display lanes onto original image
+# 8. Sanity check and display lanes onto original image
 
 Once the polynomials are calculated, we do a sanity check, and if all is OK, we draw the polynomials on the output image, and color the region in between green.
 
@@ -211,6 +211,6 @@ Each time a new curve is stored for a lane, the best fit is re-calculated.
 
 If it is not OK, one or possibly both lane detections are ignored. A counter for each lane keeps track how many subsequent failures occur, and a separate counter keeps track how many subsequent dual failures occur. Once a certain number of subsequent failures happen, it is assumed that the best-fit curve is no longer good, and the history information for one or both lines will be reset.
 
-#### 7. Summary
+# 9. Summary
 
 Overall, it was an interesting exercise that forced me to explore a lot of new things. In the end I feel that something basic is still missing in my logic to deal with shadows and very bright spots that obscure the yellow and white lanes. When adding logic to deal with one issue, it tends to break the logic for another, and it feels a bit like playing whack-a-mole.
