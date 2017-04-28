@@ -28,16 +28,16 @@ My project includes the following files:
 - [<b>P4.ipynb</b> - The Jupyter notebook containing all code with explanations](https://github.com/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/P4.ipynb)
 - [<b>P4.html</b> - The executed Jupyter notebook as HTML ](https://github.com/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/P4.html)
 - [<b>writeup_report.md</b> - A summary of the project](https://github.com/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/writeup_report.md)
-- [<b>videoProject.mp4</b> - The project video with lanes (works quite nice)](https://github.com/ArjaanBuijk/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/videoProject.mp4)
+- [<b>videoProject.mp4</b> - The project video with lanes (works quite nice)](https://github.com/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/videoProject.mp4)
 
     ![track1](https://github.com/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/videoProject.gif?raw=true)
 
-- [<b>videoChallenge.mp4</b> - The challenge video with lanes (works ok, with a few small glitches)](https://github.com/ArjaanBuijk/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/videoChallenge.mp4)
+- [<b>videoChallenge.mp4</b> - The challenge video with lanes (works ok, with a few small glitches)](https://github.com/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/videoChallenge.mp4)
 
 
     ![track1](https://github.com/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/videoChallenge.gif?raw=true)
 
--  [<b>videoHarderChallenge.mp4</b> - The harder challenge video with lanes (not so good yet... Shadows are tough!)](https://github.com/ArjaanBuijk/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/videoHarderChallenge.mp4)
+-  [<b>videoHarderChallenge.mp4</b> - The harder challenge video with lanes (not so good yet... Shadows are tough!)](https://github.com/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/videoHarderChallenge.mp4)
 
 
     ![track1](https://github.com/ArjaanBuijk/CarND_Advanced_Lane_Lines/blob/master/videoHarderChallenge.gif?raw=true)
